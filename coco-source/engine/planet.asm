@@ -23,26 +23,6 @@ zn_d    TFR A,B
         STB <pu
         RTS
 
-; the 24-bit signed value at X as a 16-bit signed number, saturated
-LD16S   LDA ,X
-        BEQ l_p
-        INCA
-        BEQ l_n
-        LDA ,X
-        BMI l_ns
-        LDD #$7FFF
-        RTS
-l_ns    LDD #$8001
-        RTS
-l_p     LDD 1,X
-        BPL l_r
-        LDD #$7FFF
-        RTS
-l_n     LDD 1,X
-        BMI l_r
-        LDD #$8001
-l_r     RTS
-
 ; Project the planet at inwk into <pcx,<pcy and its radius into <kr.
 ; Carry set when it is not to be drawn.
 PLANPROJ
@@ -52,7 +32,7 @@ PLANPROJ
         LBHS pj_no               ; too far
         ORA inwk+7
         LBEQ pj_no               ; closer than 256: too close to show
-        LDX #inwk               ; copy x,y,z and shrink them together until z < 32768
+        LDX #inwk               ; copy x,y,z; shrink all axes together until they fit
         LDU #ppos
         LDY #9
 pj_c    LDA ,X+
@@ -63,7 +43,18 @@ pj_c    LDA ,X+
 pj_s    LDA ppos+6
         BNE pj_sh
         LDA ppos+7
-        BPL pj_ok
+        BMI pj_sh
+        ; x and y must also fit signed 16 bits. Saturating either axis alone
+        ; changes its ratio to z and can bring an off-screen planet back.
+        ; The top two bytes fit iff adding $0080 leaves the high byte zero.
+        LDD ppos
+        ADDD #$0080
+        TSTA
+        BNE pj_sh
+        LDD ppos+3
+        ADDD #$0080
+        TSTA
+        BEQ pj_ok
 pj_sh   INC prs
         LDX #ppos
         ASR ,X
@@ -78,15 +69,15 @@ pj_sh   INC prs
         ROR 1,X
         ROR 2,X
         BRA pj_s
-pj_ok   LDD ppos+7              ; Zt
+pj_ok   LDA ppos+7              ; extreme off-axis positions can shrink z below 256
+        LBEQ pj_no               ; their projected centre is far outside the capped disc
+        LDD ppos+7              ; Zt
         JSR ZNORM
-        LDX #ppos               ; x
-        JSR LD16S
+        LDD ppos+1             ; x: already fits signed 16 bits
         JSR PERSP
         ADDD #128
         STD pcx
-        LDX #ppos+3             ; y
-        JSR LD16S
+        LDD ppos+4             ; y: already fits signed 16 bits
         JSR PERSP
         JSR SC34                ; y scale 3/4
         JSR NEGD
