@@ -7,6 +7,7 @@ A work-in-progress Motorola 6809 rewrite of Elite for the 64K CoCo 1/2. The rewr
 - `coco-source/`: 6809 engine, flight, docked screens, title, overlay and cartridge boot code, plus Python build generators.
 - `mk.ps1` and `build.bat`: build a disk image and cartridge image.
 - [Controls and technical notes](coco-source/README.md).
+- [Performance paper: audits, optimizations and measured results](PERFORMANCE.md).
 
 Original BBC Micro sources, reference binaries, BBC build tools, emulator ROMs, generated output, local audit captures and unrelated ports are not included. Generated assets are created locally under `coco-source/gen/` and ignored by Git.
 
