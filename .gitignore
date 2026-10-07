@@ -1,0 +1,15 @@
+/build/
+/coco-source/gen/
+__pycache__/
+*.pyc
+.vscode/
+Thumbs.db
+Desktop.ini
+# Keep external original sources and emulator ROMs out of this repository.
+/1-source-files/
+/2-build-files/
+/3-assembled-output/
+/4-reference-binaries/
+/5-compiled-game-discs/
+*.rom
+*.dsk

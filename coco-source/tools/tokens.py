@@ -1,0 +1,148 @@
+"""The original's text tokens as data for the 6809: gen/tokens.inc.
+
+  python tokens.py <original main-sources dir> <out.inc>
+
+  QQ18    the recursive tokens 0-148 (elite-text-tokens.asm), characters plain, each token
+          ends in a 0; 128-159 two-letter tokens, 160 and up recursive tokens, 1-31 control
+  QQ16    the 32 pairs of the two-letter tokens, TKN2 the pairs of the extended ones
+  TKN1    the extended tokens (descriptions, menus, missions), RUTOK the second table: each
+          token ends in a 0, the table starts with one; 1-31 jump tokens, 91-128 random
+          tokens, 129-214 extended tokens, 215-255 two-letter tokens
+  MTIN, RUPLA, RUGAL  the small lookup tables
+
+The original hides the tables with an EOR; here they are stored plain.
+"""
+import re
+import sys
+from pathlib import Path
+from ships import preprocess
+
+TWO_STD = ['AL', 'LE', 'XE', 'GE', 'ZA', 'CE', 'BI', 'SO', 'US', 'ES', 'AR', 'MA', 'IN', 'DI', 'RE', 'A?',
+           'ER', 'AT', 'EN', 'BE', 'RA', 'LA', 'VE', 'TI', 'ED', 'OR', 'QU', 'AN', 'TE', 'IS', 'RI', 'ON']
+TWO_EXT = ['--', 'AB', 'OU', 'SE', 'IT', 'IL', 'ET', 'ST', 'ON', 'LO', 'NU', 'TH', 'NO', 'AL', 'LE', 'XE',
+           'GE', 'ZA', 'CE', 'BI', 'SO', 'US', 'ES', 'AR', 'MA', 'IN', 'DI', 'RE', 'A?', 'ER', 'AT', 'EN',
+           'BE', 'RA', 'LA', 'VE', 'TI', 'ED', 'OR', 'QU', 'AN']
+
+
+def code_for_rtok(n):
+    if 0 <= n <= 95:
+        return n + 160
+    if n >= 128:
+        return n - 114
+    return n
+
+
+def chr_val(s):
+    s = s.strip()
+    m = re.match(r"^'(.)'$", s)
+    assert m, s
+    return 39 if m.group(1) == '`' else ord(m.group(1))
+
+
+def parse_table(lines, macros, terminator):
+    """Items until the end of the table, as plain bytes. macros: name -> function(args) -> bytes"""
+    out = bytearray()
+    for l in lines:
+        t = l.split('\\')[0].strip()
+        if not t:
+            continue
+        m = re.match(r'^(\w+)\s*(.*)$', t)
+        if not m:
+            continue
+        name, arg = m.group(1), m.group(2)
+        if name == 'EQUB':
+            a = arg.strip()
+            if a == terminator:
+                out.append(0)
+            elif a.isdigit():
+                out.append(int(a))
+            else:
+                raise ValueError(t)
+        elif name in macros:
+            if name in ('TWOK', 'ETWO'):
+                mm = re.match(r"^'(.)'\s*,\s*'(.)'", arg)
+                args = ["'" + mm.group(1) + "'", "'" + mm.group(2) + "'"]
+            else:
+                args = [arg.strip()] if arg else []
+            out += macros[name](*args)
+        elif name in ('SKIP', 'PRINT', 'ORG', 'SAVE', 'CLEAR', 'GUARD', 'FOR', 'NEXT'):
+            break
+        else:
+            raise ValueError('unknown ' + t)
+    return bytes(out)
+
+
+def main(src, out_path):
+    src = Path(src)
+    # --- QQ18 -----------------------------------------------------------------------------------
+    tx = (src / 'elite-text-tokens.asm').read_text(encoding='latin-1')
+    tx = preprocess(tx).splitlines()
+    i = next(k for k, l in enumerate(tx) if l.strip() == '.QQ18')
+    j = next(k for k, l in enumerate(tx) if l.strip() == '.SNE')
+    std = {
+        'CHAR': lambda x: bytes([chr_val(x)]),
+        'TWOK': lambda a, b: bytes([128 + TWO_STD.index(chr(chr_val(a)) + chr(chr_val(b)))]),
+        'CONT': lambda n: bytes([int(n)]),
+        'RTOK': lambda n: bytes([code_for_rtok(int(n))]),
+    }
+    std = {k: (lambda f: lambda *a: bytes(b ^ 0x23 for b in f(*a)))(f) for k, f in std.items()}   # (the original's EOR: a 0 ends a token)
+    qq18 = parse_table(tx[i + 1:j], std, None)
+    # --- the docked file's tables -------------------------------------------------------------
+    dk = preprocess((src / 'elite-source-docked.asm').read_text(encoding='latin-1')).splitlines()
+
+    def region(label, until):
+        a = next(k for k, l in enumerate(dk) if l.strip() == '.' + label)
+        b = next(k for k, l in enumerate(dk) if k > a and l.strip().startswith('.') and l.strip() in until)
+        return dk[a + 1:b]
+    ext = {
+        'EJMP': lambda n: bytes([int(n)]),
+        'ECHR': lambda x: bytes([chr_val(x)]),
+        'ETOK': lambda n: bytes([int(n)]),
+        'ETWO': lambda a, b: bytes([215 + TWO_EXT.index(chr(chr_val(a)) + chr(chr_val(b)))]),
+        'ERND': lambda n: bytes([int(n) + 91]),
+        'TOKN': lambda n: bytes([code_for_rtok(int(n))]),
+    }
+    tkn1 = parse_table(region('TKN1', {'.RUPLA'}), ext, 'VE')
+    rutok = parse_table(region('RUTOK', {'.MTIN'}), ext, 'VE')
+
+    def bytes_of(label, count):
+        a = next(k for k, l in enumerate(dk) if l.strip() == '.' + label)
+        out = []
+        for l in dk[a + 1:]:
+            m = re.match(r'^\s*EQUB\s+([^\\]*)', l)
+            if m:
+                v = m.group(1).strip().replace('&', '0x')
+                out.append(int(v, 0))
+                if len(out) == count:
+                    break
+        return out
+    mtin = bytes_of('MTIN', 38)
+    rupla = bytes_of('RUPLA', 25)
+    rugal = bytes_of('RUGAL', 25)
+    out = ['; Generated by tools/tokens.py: the original text tokens, stored plain (resident part).']
+
+    def emit(name, data, per=16):
+        out.append(name)
+        for k in range(0, len(data), per):
+            out.append('        FCB ' + ','.join(str(v) for v in data[k:k + per]))
+    emit('QQ18', qq18)
+    out.append('QQ16')
+    out.append('        FCC "' + ''.join(TWO_STD) + '"')
+    res = out
+    out = ['; Generated by tools/tokens.py: the extended tokens (the docked overlay).']
+    out.append('TKN2')
+    out.append('        FCB 12,10')
+    out.append('        FCC "' + ''.join(TWO_EXT[1:]) + '"')
+    emit('MTIN', mtin)
+    emit('RUPLA', rupla)
+    emit('RUGAL', rugal)
+    emit('RUTOK', rutok)
+    emit('TKN1', tkn1)
+    Path(out_path).write_text('\n'.join(res) + '\n')
+    Path(out_path).with_name('tokens_dock.inc').write_text('\n'.join(out) + '\n')
+    print('tokens: QQ18 %d, TKN1 %d, RUTOK %d bytes; MTIN %d RUPLA %d RUGAL %d' %
+          (len(qq18), len(tkn1), len(rutok), len(mtin), len(rupla), len(rugal)))
+
+
+if __name__ == '__main__':
+    main(sys.argv[1], sys.argv[2])
