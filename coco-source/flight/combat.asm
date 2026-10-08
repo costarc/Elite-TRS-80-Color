@@ -12,8 +12,7 @@ ml_r    RTS
 ; Is the ship in inwk (in the view's frame) in our sights (HITCH)? Carry set when so: in
 ; front of us, less than 64K away, not exploding, within 256 across and x^2 + y^2 less
 ; than its blueprint's targetable area.
-HITCH   ANDCC #$FE
-        LDA inwk+6
+HITCH   LDA inwk+6
         BNE hi_r                ; behind us or far
         LDA inwk+34
         BMI hi_r                ; (the planet and the sun)
@@ -42,7 +41,9 @@ HITCH   ANDCC #$FE
         CMPD 1,X                ; the area: x^2 + y^2 <= area
         BHI hi_r
         ORCC #1
-hi_r    RTS
+        RTS
+hi_r    ANDCC #$FE               ; failed helpers and overflow may have set carry
+        RTS
 
 ; HITCH said yes: a missile looking for a target locks on; our laser, if it fired, hits
 HITPROC LDA msar
