@@ -5,12 +5,14 @@
 ;   $0300-$03FF   ship workspace and per-ship arrays
 ;   $0400-$05FF   stack (the old text screen)
 ;   $0700           (cartridge boot only) the boot copier, gone once the program runs
-;   $0E00-$25FF     the title background (a LOADM segment of its own)
+;   $0E00-$25FF     low resident code (a LOADM segment of its own)
 ;   $2800-$7EFF     the resident program (LOADM or the cartridge boot copy it here)
 ;   $7F00-$7FFF     STAGE: the loader's one-sector buffer (engine/loader.asm)
 ;   $8000-$97FF     screen page A     (SAM offset 64*512)
 ;   $9800-$AFFF     screen page B     (SAM offset 76*512)
 ;   $B000-$B6FF     tables and scratch ($B200 MSKTAB, $B300 scrb)
+;   $B700-$B97F     shaded renderer workspace (engine/shade.asm)
+;   $EE00-$EFFF     PERF: helpers and gauge tables, loaded once and retained
 ;   $B9F0-$B9F2     message cache state;  $BD00-$BEFF MBUF, the message set in type
 ;   $BA00-$BCFF     RTAB, NTH, NTL: square roots and 96*256/n (MKTABS, at start-up)
 ;   $C000-$EFFF     overlay segment SHIPS (blueprints, ship sets, names), loaded at start-up
@@ -536,3 +538,17 @@ mcol    EQU $B18E       ; 1  the column an in-flight message starts at (centred)
 dkpath  EQU $B18F       ; 1  test (DOCKLOG): the branch DOCKIT took
 dklast  EQU $B190       ; 1  test (DOCKLOG): the last branch logged
 klat    EQU $B1A0       ; 8  the keys that went down since the flight last looked (KLATCH, KMERGE)
+
+; Exact dashboard caches: bars/markers belong to the physical display page.
+gcache  EQU $B1A8       ; 2 x 13 displayed gauge values; $FF invalid
+cpkey   EQU $B1C2       ; 9 exact compass position bytes
+cpvalid EQU $B1CB       ; 1 normalized cvb matches cpkey
+scdirty EQU $B1CC       ; 2 x 6 scanner bands, per physical page
+scptr   EQU $B1D8       ; 2 current scanner band table
+scrow   EQU $B1DA       ; 1 restoration band (DP changes during stack copies)
+cckey   EQU $B1DB       ; 2 exact circle radius key (kr,kry)
+ccvalid EQU $B1DD       ; 1 circle magnitude cache valid
+CCOFF   EQU $B1DE       ; 32 unsigned offsets at even sine counters, x then y
+perfdiv EQU $B1FE       ; 2 resident DIV32 entry for the persistent performance segment
+perfsin EQU $B9CF       ; 2 resident SNE entry for the persistent performance segment
+sclines EQU $B9D1       ; 1 rows left in a scanner restoration band

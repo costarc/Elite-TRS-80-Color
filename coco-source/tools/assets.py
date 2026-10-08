@@ -185,9 +185,11 @@ def emit():
                     v |= 3 << (6 - 2 * c)
             rows.append(v)
         out.append(fcb(rows))
+    out.append('        IFDEF DEBUGFONT')
     out.append('HEXFONT')   # debug: 16 glyphs x 8 rows, 8 pixels wide
     for ch in '0123456789ABCDEF':
         out.append(fcb([r << 2 for r in glyph(ch)]))
+    out.append('        ENDC')
     out.append('FONT')      # ASCII 32..126, 8 rows each, glyph in bits 6..2
     for code in range(32, 127):
         ch = chr(code)

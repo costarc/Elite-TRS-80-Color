@@ -74,6 +74,68 @@ The work produced large early gains in renderer routines, then smaller, measured
 
 The work also shows why careful measurement mattered. It caught test-state contamination, death frames, nested profiler costs, vsync rounding and RAM pressure before they could become misleading claims. The result is a port that was optimized through trace-guided 6809 design, cross-checked against the original, tested across crowded and sparse scenes, and revised when an appealing shortcut lost performance or changed the picture. Further work remains possible in dashboard caching, line setup and geometry specialization, but the roadmap's estimates for those items are not counted as achieved results here.
 
+## Exact follow-up pass — 8 October 2026
+
+This pass starts from the planet projection/type/detail checkpoint `90e05aa`. The
+historical frame-rate figures above predate those planet changes and are not its
+baseline. The default picture and game rules remain the reference for this pass.
+
+| Roadmap item | Current implementation |
+| --- | --- |
+| O07 | Thirteen bar/marker values cached separately for each physical display page; exact nine-byte compass input cache; dashboard initialization invalidates both page caches. |
+| O10, selected line specialization | Horizontal XOR spans write whole interior bytes and mask both endpoints; clipped and sloping lines keep their existing paths. General vertex endpoint-address caching is not included. |
+| O11, scanner half | Six dirty bands per display page, restored in batches of eight rows (two rows in the last band). Contacts, attack pulses, compass and both bulbs mark their covered bands. Initializing a page forces its first full restoration. |
+| O12 | Cache 32 circle magnitudes keyed by both radii. A changing radius uses the original path; a repeated radius builds the table. Centers and clipping remain live, and planet meridians remain orientation dependent. |
+| O13, face specialization | Inline the nine exact signed face-view products and skip zero face-normal terms. Both later normal sign shifts still occur when a term is zero. Vertex product specialization is not included. |
+| O17 | Flight bypasses vertex work counting when the synthetic work budget is zero. Title, hangar and mission timing retain their work budgets; FLYSWEEP retains its counter. Unused arithmetic helpers and release-only debug data/code are omitted. |
+
+The new **PERF** segment is loaded once into `$EE00-$EFFF`; it remains available
+when SHIPS and DOCK replace one another at `$C000`. It contains the performance
+helpers, gauge tables and relocated startup arithmetic/market/random helpers.
+The segment is 490 bytes, padded to two sectors. SHIPS and DOCK are bounded
+below `$EE00` so loading either cannot overwrite PERF. The existing shaded-mode
+workspace at `$B700-$B97F` remains separate. The circle table and dashboard
+cache state occupy previously unused workspace. Assembly now rejects resident
+code reaching the sector staging buffer or low code exceeding `$25FF`, and blob
+packing checks the padded PERF allocation. This preserves the original disk and
+cartridge loading layouts rather than expanding the low resident segment into
+Disk BASIC workspace.
+
+### Validation and measured limits
+
+The comparisons execute the production routines in XRoar `coco2bus`, 64K, clear
+RAM, with instruction timing. Before and after receive the same component inputs;
+these are routine measurements, not whole-game FPS claims.
+
+| Comparison | Coverage | Mean cycles before → after |
+| --- | --- | ---: |
+| Dashboard | 128 frames; alternating pages, gauge changes, moving contacts, compass changes and repeated initialization; every dashboard byte compared | 8,879 → 6,601 |
+| Horizontal lines | 4,032 spans; every start bit, zero length, byte boundaries, long spans and right-edge saturation; framebuffer bytes compared | 629 → 238 |
+| Face visibility | 3,968 sets; all 31 blueprints, signed inputs, near-face bias and detail levels; visibility bytes and ship-space vectors compared | 3,642 → 3,552 |
+| Circle cache hits | All 256 byte-sized radii, three successive calls per radius; 22,272 projected points compared across misses/builds/hits | 6,312 → 5,242 |
+
+All component comparisons matched. The projection (432 cases), close-up detail
+(204 cases), and planet technology/type regressions (2,048 systems) also passed.
+Disk BASIC LOADM/EXEC reached flight with the persistent segment loaded; the
+normal cartridge reached its running title screen. Both normal game images are
+rebuilt at the end of the pass. Local regression tools remain outside the commit,
+as requested; they are not bundled as a new public benchmark harness.
+
+Initial whole-scene traces are invalidated: the initial PERF placement overlapped
+`shade` at `$B700`, so startup cleared the first instruction byte of CIRCACHE.
+This accidentally negated circle radii and distorted both the tunnel and planet.
+The corrected layout reserves `$EE00-$EFFF`, and full launch/tunnel rendering is
+checked against the original checkpoint before publishing any frame-rate claim.
+All ten tunnel frames now match the original binary byte for byte; launch keeps
+the original 65,536-unit planet position and 96-pixel projected radius.
+
+Still unimplemented are general endpoint caching, predecoded/zero-specialized
+vertex transforms, mirror-pair vertex reuse (O14), and rotated-geometry caching
+(O16). They require a measured net saving including metadata and cache misses.
+The optional approximation, quality, hardware and ROM-execution proposals
+(O18–O24) are also outside this exact stock-CoCo pass. None of their estimated
+savings is counted above.
+
 ## Provenance and reproducibility
 
 This paper consolidates the local project records `CoCo/PERFORMANCE.md`, `CoCo/PERFORMANCE-AUDIT.md`, `CoCo/Elite-CoCo-Optimization-Roadmap-Final.md`, `CoCo/PERF-PASS.md`, `CoCo/consolidated-fps-measurements.csv` and the independent Audit A in `CoCo/consolidated-audit-evidence.zip` from the separate `Elite` working tree. The original records remain there; they are not duplicated in this repository. The roadmap audited source commit `06c6bcf7c188db8580f50b01059f4cf705862fd8`, and the implementation pass started at that commit. The current implementation is in [`coco-source/`](coco-source/), including the renderer, flight timing, sound and view-clear routines named above.

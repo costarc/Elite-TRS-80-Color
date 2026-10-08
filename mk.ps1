@@ -46,6 +46,8 @@ Invoke-Python coco-source\tools\ships.py $sourceDir coco-source\gen\ships.inc co
 if ($LASTEXITCODE) { exit 1 }
 & $asm @('-9', '--format=raw', '-Icoco-source', '-obuild\dash.bin', '--map=build\dash.map') coco-source\seg\dash.asm
 if ($LASTEXITCODE) { exit 1 }
+& $asm @('-9', '--format=raw', '-Icoco-source', '-obuild\perf.bin', '--map=build\perf.map') coco-source\seg\perf.asm
+if ($LASTEXITCODE) { exit 1 }
 Invoke-Python coco-source\tools\segs.py
 
 # The resident program is assembled twice: the first time for its labels, which the docked

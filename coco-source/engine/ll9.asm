@@ -60,29 +60,6 @@ sh_r    LSRA
         BNE sh_r
 sh_d    RTS
 
-; D (signed) >>= <hsh, arithmetic
-SHRH    TST <hsh
-        BEQ shr_d
-        PSHS A
-        LDA <hsh
-        STA <cnt2
-        PULS A
-shr_l   ASRA
-        RORB
-        DEC <cnt2
-        BNE shr_l
-shr_d   RTS
-
-; D = D + <tmp, saturating at +-32767
-SADD    ADDD <tmp
-        BVC sa_d
-        TSTA
-        BMI sa_hi
-        LDD #$8001
-        RTS
-sa_hi   LDD #$7FFF
-sa_d    RTS
-
 ; Orientation vectors (inwk+9, 9 x signed 16, unity $6000) -> mag/sgn:
 ; |e| * 64 / $6000 = (|e| * 171) >> 16, unity 64 (the original's matrix is
 ; 8 bit too). The sign masks for TRANSFORM follow (MKMASK, generated).
@@ -122,14 +99,26 @@ PSDOT   MACRO
         STA <sgnt
         LDA <pp
         LDB <mag+\1
-        JSR PROD
+        MUL                     ; exact PROD, inlined for the nine face-view products
+        TST <sgnt
+        BPL @positive0
+        NEGA
+        NEGB
+        SBCA #0
+@positive0 EQU *
         STD <acc
         LDA <ppsg+1
         EORA <sgn+\1+1
         STA <sgnt
         LDA <pp+1
         LDB <mag+\1+1
-        JSR PROD
+        MUL                     ; exact PROD, inlined for the nine face-view products
+        TST <sgnt
+        BPL @positive1
+        NEGA
+        NEGB
+        SBCA #0
+@positive1 EQU *
         ADDD <acc
         STD <acc
         LDA <ppsg+2
@@ -137,7 +126,13 @@ PSDOT   MACRO
         STA <sgnt
         LDA <pp+2
         LDB <mag+\1+2
-        JSR PROD
+        MUL                     ; exact PROD, inlined for the nine face-view products
+        TST <sgnt
+        BPL @positive2
+        NEGA
+        NEGB
+        SBCA #0
+@positive2 EQU *
         ADDD <acc
         STD <ps64+\2
         ENDM
@@ -314,13 +309,14 @@ fv_lp   LDA ,U
         STA <fs
         ANDA #31
         CMPA <lod
-        BLO fv_show             ; far away: no test
+        LBLO fv_show            ; far away: no test
         LDA <fs
         EORA <tsg               ; term sign bits: n sign xor p sign
         STA <fs
         LDX #0                  ; X = negative terms, Y = positive terms
         LDY #0
         LDA 1,U
+        BEQ fv_x2              ; zero normal contributes exactly zero
         LDB <p7
         MUL
         TST <fs
@@ -328,18 +324,22 @@ fv_lp   LDA ,U
         LEAX D,X
         BRA fv_x2
 fv_x1   LEAY D,Y
-fv_x2   LDA 2,U
+fv_x2   ASL <fs                 ; advance sign even when the term is zero
+        LDA 2,U
+        BEQ fv_y2
         LDB <p7+1
         MUL
-        ASL <fs
+        TST <fs
         BPL fv_y1
         LEAX D,X
         BRA fv_y2
 fv_y1   LEAY D,Y
-fv_y2   LDA 3,U
+fv_y2   ASL <fs
+        LDA 3,U
+        BEQ fv_z2
         LDB <p7+2
         MUL
-        ASL <fs
+        TST <fs
         BPL fv_z1
         LEAX D,X
         BRA fv_z2
@@ -601,8 +601,10 @@ tv_lp   LDA 3,U
         TST A,X
         LBEQ tv_skip
 tv_do   LDD <work
+        BEQ tv_nowork           ; flight has no synthetic frame limiter
         ADDD #VERTCOST
         STD <work
+tv_nowork EQU *
         LDA ,U
         STA <vax
         LDA 1,U

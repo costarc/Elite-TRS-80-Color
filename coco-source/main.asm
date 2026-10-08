@@ -5,6 +5,14 @@
         INCLUDE "gen/segsyms.inc"       ; the overlay segments' symbols
         INCLUDE "gen/medium.inc"
 
+        IFDEF DEBUG
+DEBUGFONT EQU 1
+        ELSE
+        IFDEF DIAG
+DEBUGFONT EQU 1
+        ENDC
+        ENDC
+
         ORG $2800
         JMP START               ; $2800: from a disk (LOADM, EXEC)
         JMP STARTC              ; $2803: from the cartridge (boot/cartboot.asm)
@@ -22,6 +30,16 @@ STARTC  ORCC #$50
         LDA #1
         STA <medium             ; cartridge
 st_go   STA $FFDF               ; all RAM: the segments go above $8000
+        CLR ccvalid
+        CLR cckey
+        CLR cckey+1
+        LDA #SEG_PERF
+        JSR LOADSEG
+        LBCS ld_err
+        LDD #DIV32
+        STD perfdiv
+        LDD #SNE
+        STD perfsin
         JSR MKTABS              ; the arithmetic tables
         JSR DINIT               ; the view's clearing records
         LDA #1
@@ -157,14 +175,15 @@ ld_err  BRA ld_err             ; the medium could not be read
         INCLUDE "engine/screen.asm"
         INCLUDE "engine/keys.asm"
         INCLUDE "engine/text.asm"
-        INCLUDE "engine/rand.asm"
         INCLUDE "engine/slots.asm"
         INCLUDE "engine/mveit.asm"
         INCLUDE "engine/stars.asm"
         INCLUDE "engine/views.asm"
         INCLUDE "engine/planet.asm"
         INCLUDE "engine/explode.asm"
+        IFDEF DEBUGFONT
         INCLUDE "engine/debug.asm"
+        ENDC
         INCLUDE "title/title.asm"
         INCLUDE "flight/flight.asm"
         INCLUDE "flight/shiploop.asm"
@@ -179,7 +198,12 @@ ld_err  BRA ld_err             ; the medium could not be read
         INCLUDE "gen/disksec.inc"
         INCLUDE "gen/assets.inc"
         INCLUDE "gen/tokens.inc"
-        ORG $0E00               ; the low code segment ($0E00-$25FF, below BASIC's program area)
+RESEND  EQU *
+        IFGT RESEND-STAGE
+        ERROR Resident program overlaps STAGE
+        ENDC
+
+        ORG $0E00               ; low resident code, above disk BASIC buffers
         INCLUDE "flight/universe.asm"
         INCLUDE "flight/tactics.asm"
         INCLUDE "flight/tactics2.asm"
@@ -190,4 +214,8 @@ ld_err  BRA ld_err             ; the medium could not be read
         INCLUDE "flight/hangar.asm"
         INCLUDE "flight/cmdr.asm"
         INCLUDE "docked/galaxy.asm"
+LOWEND  EQU *
+        IFGT LOWEND-$2600
+        ERROR Low segment overlaps Disk BASIC workspace
+        ENDC
         END START

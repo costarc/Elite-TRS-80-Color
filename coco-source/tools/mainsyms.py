@@ -2,7 +2,7 @@
 
   python mainsyms.py        (run from the CoCo directory; reads build/elite.map)
 
-Only labels in the resident program's range are exported ($2800-$7DFF); the constants of
+Labels in the low/main resident ranges and the persistent PERF segment are exported; the constants of
 engine/vars.inc and engine/types.inc are included by the segments themselves.
 """
 import re
@@ -17,7 +17,7 @@ if mp.exists():
         m = re.match(r'Symbol: (\S+) \(.*\) = ([0-9A-Fa-f]+)', line)
         if m and not m.group(1).startswith('@'):
             v = int(m.group(2), 16)
-            if 0x0E00 <= v < 0x7F00 and m.group(1) not in seen:
+            if (0x0E00 <= v < 0x7F00 or 0xEE00 <= v < 0xF000) and m.group(1) not in seen:
                 seen.add(m.group(1))
                 out.append('%-24s EQU $%04X' % (m.group(1), v))
 (ROOT / 'coco-source' / 'gen' / 'mainsyms.inc').write_text('\n'.join(out) + '\n')

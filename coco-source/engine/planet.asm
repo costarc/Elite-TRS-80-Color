@@ -236,6 +236,7 @@ ck_off  ORCC #1
 ; Draw the circle of radius <kr about (pcx,pcy). Carry set if it is off screen.
 CIRCLE  JSR CHKON
         BCS ci_off
+        JSR CIRCACHE
         LDA #8                  ; step: bigger circles get finer polygons
         LDB kr
         CMPB #8
@@ -248,6 +249,8 @@ ci_s    STA pstp
         LDA #1
         STA pfst
         CLR ccn
+        TST ccvalid
+        BNE ci_cached
 ci_l    LDA ccn                 ; x = cx + K sin
         JSR CIRSIN
         ADDD pcx
@@ -264,6 +267,24 @@ ci_l    LDA ccn                 ; x = cx + K sin
         STA ccn
         CMPA #65
         BLO ci_l
+        ANDCC #$FE
+        RTS
+ci_cached LDA ccn                 ; x = cx + K sin
+        JSR CIRLOOK
+        ADDD pcx
+        STD <cx1
+        LDA ccn                 ; y = cy + 3/4 K cos  (cos = sin shifted by 16)
+        ADDA #16
+        ANDA #63
+        JSR CIRLOOKY
+        ADDD pcy
+        STD <cy1
+        JSR CIRSEG
+        LDA ccn
+        ADDA pstp
+        STA ccn
+        CMPA #65
+        BLO ci_cached
         ANDCC #$FE
         RTS
 ci_off  ORCC #1

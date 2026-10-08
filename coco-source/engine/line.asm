@@ -209,6 +209,8 @@ ln_dy   STA <ldy8               ; |dy|
         LSRB
         LSRB
         ABX
+        TST <ldy8
+        LBEQ ln_horizontal
         LDA <ldx8
         CMPA <ldy8
         LBLO ln_ymaj

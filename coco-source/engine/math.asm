@@ -42,28 +42,6 @@ dv_no   LEAY -1,Y
         BNE dv_lp
         RTS
 
-; D = signed product of magnitudes A*B, negative when bit 7 of <sgnt is set.
-PROD    MUL
-        TST <sgnt
-        BPL pr_done
-        NEGA
-        NEGB
-        SBCA #0
-pr_done RTS
-
-; Same, quartered: keeps sums of several 8x8 products inside 16 bits.
-PRODQ   MUL
-        LSRA
-        RORB
-        LSRA
-        RORB
-        TST <sgnt
-        BPL pq_done
-        NEGA
-        NEGB
-        SBCA #0
-pq_done RTS
-
 ; D = -D
 NEGD    NEGA
         NEGB

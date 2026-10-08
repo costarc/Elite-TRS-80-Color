@@ -33,6 +33,19 @@ ddp_z    STD ,X++
         RTS
 
 DASHINIT
+        LDX #gcache
+        LDB #26
+        LDA #$FF
+ddi_gc  STA ,X+
+        DECB
+        BNE ddi_gc
+        CLR cpvalid
+        LDX #scdirty
+        LDB #12
+        LDA #$FF
+ddi_sc  STA ,X+
+        DECB
+        BNE ddi_sc
         LDD <back
         PSHS D
         LDD #$8000
@@ -58,26 +71,81 @@ DASHFRAME
 ; reads the art upwards and PSHS writes the screen downwards, so the art keeps each row's
 ; three chunks in reverse order; interrupts are off while S is a data pointer.
 SCANRESTORE
+        LDX #scdirty
+        LDA <back
+        CMPA #$80
+        BEQ dsr_page
+        LEAX 6,X
+dsr_page STX scptr
+        CLR scrow
         STS <savs
         ORCC #$10
         LDU #SCANIMG
         LDD <back
         ADDD #DASHY*32+26
         TFR D,S
-dsr_l    PULU A,B,DP,X,Y
+dsr_band LDA scrow
+        LDX scptr
+        TST A,X
+        BEQ dsr_skipband
+        LDA #8
+        LDB scrow
+        CMPB #5
+        BNE dsr_count
+        LDA #2                  ; final band: only dashboard rows 40 and 41
+dsr_count STA sclines
+dsr_copy PULU A,B,DP,X,Y
         PSHS A,B,DP,X,Y
         PULU A,B,DP,X,Y
         PSHS A,B,DP,X,Y
         PULU A,B,X,Y
         PSHS A,B,X,Y
-        LEAS 52,S               ; up to the end of the next row's chunk
-        CMPU #SCANIMG+42*20
-        BNE dsr_l
+        LEAS 52,S
+        DEC sclines             ; extended: PULU has changed DP
+        BNE dsr_copy
+        BRA dsr_nextband
+dsr_skipband LDA scrow
+        CMPA #5
+        BEQ dsr_skiplast
+        LEAU 8*20,U
+        LEAS 8*32,S
+        BRA dsr_nextband
+dsr_skiplast LEAU 2*20,U
+        LEAS 2*32,S
+dsr_nextband INC scrow
+        LDA scrow
+        CMPA #6
+        BNE dsr_band
         LDA #2
         TFR A,DP
         LDS <savs
         ANDCC #$EF
+        LDX scptr
+        CLRA
+        CLRB
+        STD ,X
+        STD 2,X
+        STD 4,X
         RTS
+
+; Mark inclusive dashboard rows A..B on the page being drawn.
+; Six 8-row bands cover the scanner, including its last two rows.
+SCMARK  PSHS D,X
+        LSRA
+        LSRA
+        LSRA
+        LSRB
+        LSRB
+        LSRB
+        PSHS B
+        LDX scptr
+        LDB #$FF
+dsm_l   STB A,X
+        INCA
+        CMPA ,S
+        BLS dsm_l
+        LEAS 1,S
+        PULS D,X,PC
 
 ; X -> a 24-bit coordinate: A = its middle byte, if the coordinate is within -64..63
 ; (the original's "x_hi, y_hi and z_hi all less than 64"): carry clear; else carry set
@@ -149,6 +217,17 @@ dsc_e    SUBA #192               ; to dashboard rows, 3/4 of the lines
         LSRA
         LSRA
         STA dtb
+        LDA dtr
+        DECA
+        LDB dtr
+        INCB                    ; pulse can occupy dot-1..dot+1
+        CMPA dtb
+        BLS dsc_min
+        LDA dtb
+dsc_min CMPB dtb
+        BHS dsc_max
+        LDB dtb
+dsc_max JSR SCMARK
         LDA dtr                ; the stick: the rows between its base and the dot
         LDB dtb
         CMPA dtb
@@ -233,6 +312,9 @@ ATTACKMASK FDB $FF00,$3FC0,$0FF0,$03FC
 
 ; ---- the gauges --------------------------------------------------------------------
 ; X = the bar's first byte, A = its length in pixels (up to 16)
+CBAR    CMPA ,U+
+        BEQ dbr_done
+        STA -1,U
 BAR     CMPA #16
         BLS dbr_a
         LDA #16
@@ -246,9 +328,12 @@ dbr_a    ASLA
         LDD 2,Y
         STD 2,X
         STD 34,X
-        RTS
+dbr_done RTS
 
 ; X = the marker's first byte, A = its position 0-15
+CMARK   CMPA ,U+
+        BEQ dmk_done
+        STA -1,U
 MARK    ASLA
         ASLA
         LDY #MARKTAB
@@ -261,22 +346,31 @@ MARK    ASLA
         STD 2,X
         STD 34,X
         STD 66,X
-        RTS
+dmk_done RTS
 
 ; a bar in the dashboard's character row \1 (6 rows of 8 lines), byte column \2
 GBAR    MACRO
         LDX <back
         LEAX 32*(DASHY+6*\1+2)+\2,X
-        JSR BAR
+        JSR CBAR
         ENDM
 
 GMARK   MACRO
         LDX <back
         LEAX 32*(DASHY+6*\1+1)+\2,X
-        JSR MARK
+        JSR CMARK
         ENDM
 
-GAUGES  LDA fsh                ; the left side: shields, fuel, temperatures, altitude
+GAUGES  LDU #gcache
+        LDA <back
+        CMPA #$80
+        BEQ dgc_page
+        LEAU 13,U
+dgc_page LDX scptr
+        LDA #$FF                ; scanner restore includes both bulbs, rows 30..34
+        STA 3,X
+        STA 4,X
+        LDA fsh                ; the left side: shields, fuel, temperatures, altitude
         LSRA
         LSRA
         LSRA
@@ -413,7 +507,9 @@ BULBS   FCB $FC,$C0,$FC,$0C,$FC
 ; row when it is behind.
 
 ; the dot's two pixels on dashboard row A, x pixel dtx
-DOTROW  LDB #32
+DOTROW  TFR A,B
+        JSR SCMARK
+        LDB #32
         MUL
         ADDD <back
         ADDD #DASHY*32
@@ -432,34 +528,6 @@ DOTROW  LDB #32
         ORB 1,X
         STD ,X
         RTS
-
-; X -> a 24-bit coordinate: carry clear if it fits in its low byte as a signed number
-FITS8   LDA 2,X
-        ROLA
-        LDA #0
-        SBCA #0
-        CMPA ,X
-        BNE dfi_n
-        CMPA 1,X
-        BNE dfi_n
-        ANDCC #$FE
-        RTS
-dfi_n   ORCC #1
-        RTS
-
-; A = signed, |A| <= 96: A = A / 10
-DIV10S  PSHS A
-        BPL dv_p
-        NEGA
-dv_p    LDB #205
-        MUL
-        LSRA
-        LSRA
-        LSRA
-        TST ,S+
-        BPL dv_r
-        NEGA
-dv_r    RTS
 
 COMPAS  LDA #TY_PLANET          ; the planet, or the station when we are near it
         TST sspr
@@ -480,10 +548,26 @@ cp_n    INC <slotn
         CMPA #NSLOTS
         BLO cp_f
         RTS
-cp_g    LDU #cv                 ; the planet's position, shifted (TAS2) until the largest
-        LDB #9                  ; coordinate fills a byte
+cp_g    TST cpvalid
+        BEQ cp_copy
+        PSHS X
+        LDY #cpkey
+        LDB #9
+cp_cmp  LDA ,X+
+        CMPA ,Y+
+        BNE cp_miss
+        DECB
+        BNE cp_cmp
+        PULS X
+        LBRA cp_plot
+cp_miss PULS X
+cp_copy CLR cpvalid
+        LDU #cv                 ; copy the exact key and working vector in one pass
+        LDY #cpkey
+        LDB #9
 cp_c    LDA ,X+
         STA ,U+
+        STA ,Y+
         DECB
         BNE cp_c
 cp_a    LDX #cv
@@ -530,7 +614,8 @@ cp_d    LDA cv+2
         STA cvb+2
         LDX #cvb
         JSR NORM3               ; length 96
-        LDA cvb
+        INC cpvalid
+cp_plot LDA cvb
         JSR DIV10S
         ADDA #195
         STA dtx
@@ -553,5 +638,3 @@ cp_d    LDA cv+2
 cp_k    LDA <tmp
         JMP DOTROW
 cp_x    RTS
-
-        INCLUDE "gen/dash.inc"

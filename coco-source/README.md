@@ -149,7 +149,10 @@ flight/bench.asm    micro-benchmarks (BENCH)
 * Glyphs are our own 5x7 font in 8x8 cells (the BBC MOS font is not
   redistributable). On the title screen LEFT/RIGHT arrows browse all ships (next/previous), SPACE pauses (development aids).
 * Disk BASIC's LOADM cannot load at or above `$8000`, so the resident program lives in
-  `$2800-$7DFF` (started with `CLEAR 200,&H2800:LOADM"ELITE":EXEC`; the 6K title
-  background is a separate segment at `$0E00`), and everything bigger is an overlay
-  segment that the loader brings into the RAM above (see Media).
+  `$2800-$7EFF` plus low code at `$0E00-$25FF` (started with
+  `CLEAR 200,&H2800:LOADM"ELITE":EXEC`). The sector buffer occupies `$7F00-$7FFF`.
+  SHIPS and DOCK share `$C000-$EDFF`; DASH contains the dashboard art at `$F300`.
+  PERF is loaded once at `$EE00-$EFFF` and retains the performance helpers and
+  gauge tables across SHIPS/DOCK swaps. Assembly rejects either resident segment
+  overflowing its safe range; overlay packing checks every padded segment.
 

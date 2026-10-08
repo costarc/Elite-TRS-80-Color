@@ -277,19 +277,6 @@ QQ23
         FCB 45,193,250,15
         FCB 53,15,192,7
 
-; qq19+3 := the economy times the size of the item's factor, from the item's table byte mk+1 (var)
-VAR     LDA mk+1
-        ANDA #31
-        STA mk+2
-        LDB qq28
-        CLRA
-va_l    DECB
-        LBMI va_d
-        ADDA mk+2
-        LBRA va_l
-va_d    STA mk+3
-        RTS
-
 ; the market of the system we have arrived at: its economy, a random price variation, and what
 ; is for sale (GVL: the quantity is the base plus a random part, less the economic factor)
 GVL     LDA qq3
@@ -327,42 +314,4 @@ gv_9    ANDA #$3F
         LDA tyy
         CMPA #17
         LBLO gv_l
-        RTS
-
-; the tables of ISQRT16 and NORM3, built once at start-up (in the RAM above $8000):
-; RTAB[h] = isqrt(h*256+255);  NTH/NTL[n] = 96*256/n, high and low bytes (n 1..255)
-MKTABS  LDX #RTAB
-        CLR <tmp2               ; r
-        CLR <cnt                ; h
-mt_r    LDA <tmp2
-        INCA
-        BEQ mt_s                ; r = 255 is the largest
-        TFR A,B
-        MUL                     ; (r+1)^2 <= h*256+255 when its high byte <= h
-        CMPA <cnt
-        BHI mt_s
-        INC <tmp2
-        BRA mt_r
-mt_s    LDA <tmp2
-        STA ,X+
-        INC <cnt
-        BNE mt_r
-        LDA #1
-        STA <cnt
-mt_n    LDD #24576
-        STD <mr+2
-        LDD #0
-        STD <mr
-        STA <md
-        LDB <cnt
-        STB <md+1
-        JSR DIV32
-        LDX #NTH
-        LDB <cnt
-        ABX
-        LDD <mr+2
-        STA ,X
-        STB 256,X
-        INC <cnt
-        BNE mt_n
         RTS

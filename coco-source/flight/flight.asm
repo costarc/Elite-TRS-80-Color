@@ -1004,7 +1004,11 @@ FLYFRAME
 ; everything but the page flip (also run by the benchmark)
 FLYDRAW
         JSR VIEWCLR
+        IFDEF FLYSWEEP          ; SWEEPLOG still uses the vertex work counter
         LDD #WORKBASE
+        ELSE
+        LDD #0
+        ENDC
         STD <work
         IFDEF FLYBOOM                   ; test: a Cobra (slot 2) appears and blows up, repeatedly
         LDA <mcnt

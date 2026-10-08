@@ -193,7 +193,7 @@ CRTXT
         FCC "with AI assistance (Claude),"
         FCB 0
         FCB 16,2
-        FCC "2026, v1.0.1"
+        FCC "2026, v1.0.2"
         FCB 0
         FCB 255
 
