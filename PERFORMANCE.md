@@ -189,6 +189,22 @@ and row dispatch. This runtime implementation is rejected and is not shipped.
 A future predecoded pairing layout would have to beat that overhead and fit the
 loader allocations; the original 5–7k estimate remains unproven.
 
+### O16 rotated-geometry cache gate
+
+The cache was measured in the six-still-ship `FLYTEST,FLYSTILL,AUDITSAFE`
+cartridge fixture. At the entry to `TRANSFORM`, the full key was the blueprint
+pointer plus all 18 matrix magnitude/sign bytes. Across 120 calls there were 12
+distinct keys; a six-entry LRU replay hit 108 calls (90%), while capacities of
+one through five hit none. Each ship's key was stable for 90–95% of its calls.
+
+The six blueprints contain 106 vertices in total (10, 11, 15, 17, 25 and 28).
+Caching three 16-bit rotated offsets per vertex takes 636 bytes, before the
+six full keys (at least 120 bytes) and validity state. Even borrowing both the
+384-byte shaded-span workspace and all 256 bytes at `$7E00-$7EFF` would provide
+only 640 bytes, and those ranges already hold live shaded-mode and test data.
+The exact cache therefore does not fit the available safe workspace. O16 is
+rejected for this pass; no projected cycle saving is claimed.
+
 ### View-banner packing prerequisite
 
 The fixed uppercase view names have an empty eighth bitmap row. GEOM now stores
