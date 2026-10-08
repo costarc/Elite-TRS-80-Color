@@ -121,10 +121,23 @@ t167_l  LDA #$80
 
 ; (TNPR and TNPR1, the room in the hold, are in flight/combat.asm: scooping needs them too)
 
-; (Y X) := P * Q * 4: the cost (GCASH); D = P * Q * 4 as (Y X) in the register X
+; (Y X) := P * Q * 4 as a 32-bit tenths-of-a-credit amount (GCASH).
+; Large quantities of high-priced commodities can exceed a 16-bit total.
 GCASH   LDA tsc
         LDB tsc2
         MUL
+        TFR D,X
+        TFR A,B
+        ANDB #$C0                ; product bits 14-15 become bits 0-1 after the *4
+        LSRB
+        LSRB
+        LSRB
+        LSRB
+        LSRB
+        LSRB
+        CLRA
+        TFR D,Y
+        TFR X,D
         ASLB
         ROLA
         ASLB
@@ -132,7 +145,7 @@ GCASH   LDA tsc
         TFR D,X
         RTS
 
-; cash := cash - X (LCASH): carry set when we had enough, and then the cash is paid
+; cash := cash - X (LCASH): the equipment shop still uses a 16-bit cost
 LCASH   LDD cash+2
         PSHS X
         SUBD ,S++
@@ -140,7 +153,7 @@ LCASH   LDD cash+2
         STD cash+2
         ORCC #1
         RTS
-lc_no   STD knum                ; (the result of the low word, wrapped)
+lc_no   STD knum                ; the result of the low word, wrapped
         LDD cash
         SUBD #1
         LBLO lc_x
@@ -150,6 +163,28 @@ lc_no   STD knum                ; (the result of the low word, wrapped)
         ORCC #1
         RTS
 lc_x    ANDCC #$FE
+        RTS
+
+; cash := cash - Y:X (LCASH32): the market uses the full GCASH amount
+LCASH32 STY knum
+        STX knum+2
+        LDD cash
+        CMPD knum
+        BLO lc32_x
+        BHI lc_pay
+        LDD cash+2
+        CMPD knum+2
+        BLO lc32_x
+lc_pay  LDD cash+2
+        SUBD knum+2
+        STD cash+2
+        LDD cash
+        SBCB knum+1
+        SBCA knum
+        STD cash
+        ORCC #1
+        RTS
+lc32_x  ANDCC #$FE
         RTS
 
 ; ---- reading a number (gnum) ---------------------------------------------------------------------
@@ -254,7 +289,7 @@ TT224   JSR CLYNS
         LDA qq24
         STA tsc2                ; Q: the price
         JSR GCASH
-        JSR LCASH
+        JSR LCASH32
         LDY #197
         LBCC Tc                  ; not enough cash
         LDB qq29
@@ -368,9 +403,22 @@ NWDAV4  JSR TT67
         LDB qq29
         JMP t211b
 
-; the cash += X
-MCASHX  TFR X,D
-        JMP MCASH
+; the cash += Y:X (the full GCASH amount)
+MCASHX  STY knum
+        STX knum+2
+        LDD cash+2
+        ADDD knum+2
+        STD cash+2
+        BCC mcx_hi
+        LDD cash
+        ADDD knum
+        ADDD #1
+        STD cash
+        RTS
+mcx_hi  LDD cash
+        ADDD knum
+        STD cash
+        RTS
 
 TT213   LDA #8
         JSR TT66

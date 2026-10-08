@@ -296,16 +296,28 @@ gv_l    LDB tyy
         PULS X
         LDA qq26
         ANDA 3,X
-        ADDA 2,X
-        LDB mk+1
-        LBMI gv_7
-        SUBA mk+3               ; (a negative result is none)
-        LBRA gv_8
-gv_7    ADDA mk+3
-gv_8    TSTA
-        LBPL gv_9
+        TFR A,B
         CLRA
-gv_9    ANDA #$3F
+        ADDB 2,X
+        ADCA #0                  ; keep the base + random quantity as a 9-bit value
+        STD <tmp
+        LDA mk+1
+        BITA #$80
+        BNE gv_add
+        LDD <tmp
+        SUBB mk+3
+        SBCA #0                  ; (a negative result is none)
+        BCS gv_zero
+        BRA gv_clamp
+gv_add  LDD <tmp
+        ADDB mk+3
+        ADCA #0
+gv_clamp TSTA
+        BEQ gv_store
+        LDB #255                 ; availability is a byte: saturate instead of wrapping
+        BRA gv_store
+gv_zero CLRB
+gv_store TFR B,A
         LDB tyy
         LDX #avl
         ABX
