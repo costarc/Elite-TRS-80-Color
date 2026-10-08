@@ -102,6 +102,7 @@ sc_s    ADDA ,S+
         LDX #STAGE
         STX <DCBPT
         JSR [DSKVEC]
+        ORCC #$50               ; Disk BASIC may return with IRQ enabled: mask before RAM mode
         LDA <DCSTA
         PSHS A
         LDA #2
@@ -186,6 +187,7 @@ dr_s    ADDA ,S+
         LDX #STAGE
         STX <DCBPT
         JSR [DSKVEC]
+        ORCC #$50               ; Disk BASIC may return with IRQ enabled: mask before RAM mode
         LDA <DCSTA
         PSHS A
         LDA #2
