@@ -38,7 +38,11 @@ NOISE   TST snd
         LSRA
         RORB
         TFR D,Y
-no_f    LDA #$3C                ; CB2 high: connect the DAC during the effect
+no_f    LDA #$34                ; CA2 low: select the DAC as the sound source
+        STA $FF01
+        LDA #$35                ; CB2 low: select the DAC; keep CB1 field-sync IRQ enabled
+        STA $FF03
+        LDA #$3C                ; CB2 high: connect the DAC during the effect
         STA $FF23
         LDX 1,U                 ; the half period / (the noise's) not used
         TST ,U
@@ -81,7 +85,11 @@ no_nd   LEAX -1,X
         BNE no_ns
 no_r    LDA #$80                ; the DAC back to the middle
         STA DAC
-        LDA #$34                ; CB2 low: disconnect sound between effects
+        LDA #$3C                ; CA2 high: select source bit A = 1
+        STA $FF01
+        LDA #$3D                ; CB2 high: source 3 (none); keep CB1 field-sync IRQ enabled
+        STA $FF03
+        LDA #$34                ; CB2 low: disable the sound mux between effects
         STA $FF23
         PULS A,B,X,Y,U,CC
 no_x    RTS

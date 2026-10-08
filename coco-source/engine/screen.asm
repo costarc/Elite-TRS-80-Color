@@ -138,14 +138,14 @@ INITHW  LDD #CY                 ; the flight view's centre and last row
         CLR $FF03
         LDA #$FF
         STA $FF02
-        LDA #$34                ; CA2 an output, low: sound source select bit A = 0 (the DAC)
+        LDA #$3C                ; CA2 an output, high: sound source select bit A = 1
         STA $FF01
-        LDA #$35                ; CB2 an output, low: select bit B = 0; CB1 (field sync) raises IRQ
+        LDA #$3D                ; CB2 high: select source 3 (none); CB1 (field sync) raises IRQ
         STA $FF03
         CLR $FF23
         LDA #$F8                ; VDG: graphics, GM = 111, CSS 1
         STA $FF22
-        LDA #$34                ; CB2 output, low: silence until NOISE plays an effect
+        LDA #$34                ; CB2 output, low: keep the sound mux disabled between effects
         STA $FF23
         CLR $FF21               ; the DAC on port A: bits 2-7 outputs, then CA2 low as Color BASIC
         LDA #$FC
