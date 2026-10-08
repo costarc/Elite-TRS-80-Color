@@ -159,6 +159,22 @@ image makes room without touching ship data. Shaded scalars move to
 `$7E00-$7EAF`, with its pointer and sweep counters outside GEOM. Assembly guards
 the resident end at `$7E00`, and segment packing guards GEOM below `$B800`.
 
+### O10 general endpoint-cache gate
+
+A lazy address-cache prototype was replayed against 225 direct ship-edge calls
+from the first 32 drawn hulls of the isolated six-ship trace. Both versions
+returned every expected framebuffer address. Including hit/miss bookkeeping and
+selection of the left endpoint after a swap, the address stage averaged 54.00
+cycles without caching and 61.14 with caching. This excludes the extra work a
+production cache would need to reconstruct clipped coordinates, so the result
+is already optimistic for the cache.
+
+Across the whole captured trace, 500 of 1,333 left-endpoint accesses reused a
+previous start vertex; 833 were first accesses. General endpoint-address caching
+is therefore rejected for this pass. The shipped horizontal-span specialization
+remains; the slower prototype is kept out of the game and its estimates are not
+counted as savings.
+
 ## Provenance and reproducibility
 
 This paper consolidates the local project records `CoCo/PERFORMANCE.md`, `CoCo/PERFORMANCE-AUDIT.md`, `CoCo/Elite-CoCo-Optimization-Roadmap-Final.md`, `CoCo/PERF-PASS.md`, `CoCo/consolidated-fps-measurements.csv` and the independent Audit A in `CoCo/consolidated-audit-evidence.zip` from the separate `Elite` working tree. The original records remain there; they are not duplicated in this repository. The roadmap audited source commit `06c6bcf7c188db8580f50b01059f4cf705862fd8`, and the implementation pass started at that commit. The current implementation is in [`coco-source/`](coco-source/), including the renderer, flight timing, sound and view-clear routines named above.
