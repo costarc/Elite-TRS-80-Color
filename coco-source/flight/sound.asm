@@ -14,46 +14,13 @@ DAC     EQU $FF20
 SNDHI   EQU $A8                 ; the two levels of the wave (6 bits in bits 2-7)
 SNDLO   EQU $54
 
-SNDTAB  FCB 0                   ; 0  our laser: a chirp down
-        FDB 20,4,30
-        FCB 0
-        FCB 1                   ; 8  we are hit: a short burst
-        FDB 0,5,420
-        FCB 0
-        FCB 1                   ; 16 a hit or a kill
-        FDB 0,14,520
-        FCB 0
-        FCB 1                   ; 24 a long one: our death
-        FDB 0,30,800
-        FCB 0
-        FCB 0                   ; 32 a short high beep
-        FDB 22,0,20
-        FCB 0
-        FCB 0                   ; 40 a long low beep
-        FDB 170,0,26
-        FCB 0
-        FCB 1                   ; 48 a missile or a ship launched: a dull burst
-        FDB 0,40,260
-        FCB 0
-        FCB 0                   ; 56 hyperspace: a rising chirp
-        FDB 200,-2,80
-        FCB 0
-        FCB 0                   ; 64 the E.C.M. on: a buzz
-        FDB 70,0,60
-        FCB 0
-        FCB 0                   ; 72 off: nothing
-        FDB 1,0,0
-        FCB 0
-
 ; A = the sound number (8 * the original's sound): play it now
 NOISE   TST snd
-        BEQ no_x
+        LBEQ no_x
         PSHS A,B,X,Y,U,CC
-        LDB #8
-        LSRA
-        LSRA
-        LSRA
-        MUL
+        ANDA #$F8               ; round to the original eight-byte table entry
+        TFR A,B
+        CLRA
         ADDD #SNDTAB
         TFR D,U
         LDD 5,U
@@ -71,7 +38,8 @@ NOISE   TST snd
         LSRA
         RORB
         TFR D,Y
-no_f    EQU *
+no_f    LDA #$3C                ; CB2 high: connect the DAC during the effect
+        STA $FF23
         LDX 1,U                 ; the half period / (the noise's) not used
         TST ,U
         BNE no_n
@@ -113,6 +81,8 @@ no_nd   LEAX -1,X
         BNE no_ns
 no_r    LDA #$80                ; the DAC back to the middle
         STA DAC
+        LDA #$34                ; CB2 low: disconnect sound between effects
+        STA $FF23
         PULS A,B,X,Y,U,CC
 no_x    RTS
 

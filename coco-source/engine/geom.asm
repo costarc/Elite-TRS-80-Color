@@ -43,3 +43,5 @@ gy_positive LDD #$7FFF
         RTS
 
         INCLUDE "gen/viewbanner.inc"
+
+        INCLUDE "engine/soundtable.asm"

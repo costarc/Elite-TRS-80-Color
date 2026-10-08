@@ -145,7 +145,7 @@ INITHW  LDD #CY                 ; the flight view's centre and last row
         CLR $FF23
         LDA #$F8                ; VDG: graphics, GM = 111, CSS 1
         STA $FF22
-        LDA #$3C                ; CB2 output, high: the sound output enabled (bits 5-3 = 111)
+        LDA #$34                ; CB2 output, low: silence until NOISE plays an effect
         STA $FF23
         CLR $FF21               ; the DAC on port A: bits 2-7 outputs, then CA2 low as Color BASIC
         LDA #$FC
