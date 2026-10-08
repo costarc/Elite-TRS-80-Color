@@ -175,6 +175,20 @@ is therefore rejected for this pass. The shipped horizontal-span specialization
 remains; the slower prototype is kept out of the game and its estimates are not
 counted as savings.
 
+### O14 mirror-pair gate
+
+A runtime mirror-pair prototype cached each row's first product and raw sum.
+For a matching X-mirror it recombined the exact complemented term as
+`new_sum = old_sum - 2 * old_x_term - 1` modulo 16 bits. It reset the cache at
+ship boundaries and consumed each matching pair once.
+
+Across the same 992 natural blueprint transform cases, every one of the 317,440
+coordinate/outcode bytes matched. Mean transform cost increased from 12,130.69
+to 13,325.46 cycles (9.85%) after accounting for key comparisons, cache writes
+and row dispatch. This runtime implementation is rejected and is not shipped.
+A future predecoded pairing layout would have to beat that overhead and fit the
+loader allocations; the original 5–7k estimate remains unproven.
+
 ## Provenance and reproducibility
 
 This paper consolidates the local project records `CoCo/PERFORMANCE.md`, `CoCo/PERFORMANCE-AUDIT.md`, `CoCo/Elite-CoCo-Optimization-Roadmap-Final.md`, `CoCo/PERF-PASS.md`, `CoCo/consolidated-fps-measurements.csv` and the independent Audit A in `CoCo/consolidated-audit-evidence.zip` from the separate `Elite` working tree. The original records remain there; they are not duplicated in this repository. The roadmap audited source commit `06c6bcf7c188db8580f50b01059f4cf705862fd8`, and the implementation pass started at that commit. The current implementation is in [`coco-source/`](coco-source/), including the renderer, flight timing, sound and view-clear routines named above.
