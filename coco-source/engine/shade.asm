@@ -16,41 +16,41 @@
 ; The loop data after a blueprint's faces (one entry per face): FCB count (0: no polygon),
 ; then nx, ny, nz (the normal, signed, length 64) and count vertex offsets (vertex * 4 into scr).
 
-shade   EQU $B700               ; 1  the mode: 0 wireframe
-sd_ls   EQU $B701               ; 1  the light along the ship's side axis (signed, unity 64)
-sd_lr   EQU $B702               ; 1  along its roof axis
-sd_ln   EQU $B703               ; 1  along its nose axis
-sd_f    EQU $B704               ; 1  the face being looked at
-sd_nf   EQU $B705               ; 1  the number of faces
-sd_vn   EQU $B706               ; 1  vertices in the polygon
-sd_vp   EQU $B707               ; 2  where its vertex offsets are
-sd_nx   EQU $B709               ; 3  its normal
-sd_lv   EQU $B70C               ; 1  its brightness, 1-8
-sd_pt   EQU $B70D               ; 2  its pattern
-sd_r0   EQU $B70F               ; 1  first row to fill
-sd_r1   EQU $B710               ; 1  last row
-sd_i    EQU $B711               ; 1  counter
-sd_ex0  EQU $B712               ; 2  the edge: x0
-sd_ey0  EQU $B714               ; 2  y0
-sd_ex1  EQU $B716               ; 2  x1
-sd_ey1  EQU $B718               ; 2  y1
-sd_es   EQU $B71A               ; 2  slope, signed 8.8
-sd_ea   EQU $B71C               ; 3  x * 256, signed 24 bits
-sd_er   EQU $B71F               ; 1  the row
-sd_ee   EQU $B720               ; 1  the last row of the edge
-sd_t    EQU $B721               ; 4  scratch
-sd_sg   EQU $B725               ; 1  sign of the slope
-sd_ymn  EQU $B726               ; 2  smallest y
-sd_ymx  EQU $B728               ; 2  largest y
-sd_vv   EQU $B72A               ; 16 the polygon's vertex offsets
-sd_xl   EQU $B73A               ; 1  span: left x
-sd_xr   EQU $B73B               ; 1  right x
-sd_pb   EQU $B73C               ; 1  pattern byte of the row
-sd_lm   EQU $B73D               ; 1  left mask
-sd_rm   EQU $B73E               ; 1  right mask
-sd_bl   EQU $B73F               ; 1  left byte
-sd_br   EQU $B740               ; 1  right byte
-sd_mx   EQU $B741               ; 1  the last row of the screen
+shade   EQU SHWORK+$00               ; 1  the mode: 0 wireframe
+sd_ls   EQU SHWORK+$01               ; 1  the light along the ship's side axis (signed, unity 64)
+sd_lr   EQU SHWORK+$02               ; 1  along its roof axis
+sd_ln   EQU SHWORK+$03               ; 1  along its nose axis
+sd_f    EQU SHWORK+$04               ; 1  the face being looked at
+sd_nf   EQU SHWORK+$05               ; 1  the number of faces
+sd_vn   EQU SHWORK+$06               ; 1  vertices in the polygon
+sd_vp   EQU SHWORK+$07               ; 2  where its vertex offsets are
+sd_nx   EQU SHWORK+$09               ; 3  its normal
+sd_lv   EQU SHWORK+$0C               ; 1  its brightness, 1-8
+sd_pt   EQU SHWORK+$0D               ; 2  its pattern
+sd_r0   EQU SHWORK+$0F               ; 1  first row to fill
+sd_r1   EQU SHWORK+$10               ; 1  last row
+sd_i    EQU SHWORK+$11               ; 1  counter
+sd_ex0  EQU SHWORK+$12               ; 2  the edge: x0
+sd_ey0  EQU SHWORK+$14               ; 2  y0
+sd_ex1  EQU SHWORK+$16               ; 2  x1
+sd_ey1  EQU SHWORK+$18               ; 2  y1
+sd_es   EQU SHWORK+$1A               ; 2  slope, signed 8.8
+sd_ea   EQU SHWORK+$1C               ; 3  x * 256, signed 24 bits
+sd_er   EQU SHWORK+$1F               ; 1  the row
+sd_ee   EQU SHWORK+$20               ; 1  the last row of the edge
+sd_t    EQU SHWORK+$21               ; 4  scratch
+sd_sg   EQU SHWORK+$25               ; 1  sign of the slope
+sd_ymn  EQU SHWORK+$26               ; 2  smallest y
+sd_ymx  EQU SHWORK+$28               ; 2  largest y
+sd_vv   EQU SHWORK+$2A               ; 16 the polygon's vertex offsets
+sd_xl   EQU SHWORK+$3A               ; 1  span: left x
+sd_xr   EQU SHWORK+$3B               ; 1  right x
+sd_pb   EQU SHWORK+$3C               ; 1  pattern byte of the row
+sd_lm   EQU SHWORK+$3D               ; 1  left mask
+sd_rm   EQU SHWORK+$3E               ; 1  right mask
+sd_bl   EQU SHWORK+$3F               ; 1  left byte
+sd_br   EQU SHWORK+$40               ; 1  right byte
+sd_mx   EQU SHWORK+$41               ; 1  the last row of the screen
 XLTAB   EQU $B800               ; 192: left ends
 XRTAB   EQU $B8C0               ; 192: right ends
 

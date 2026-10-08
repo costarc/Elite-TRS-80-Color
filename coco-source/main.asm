@@ -36,6 +36,9 @@ st_go   STA $FFDF               ; all RAM: the segments go above $8000
         LDA #SEG_PERF
         JSR LOADSEG
         LBCS ld_err
+        LDA #SEG_GEOM
+        JSR LOADSEG
+        LBCS ld_err
         LDD #DIV32
         STD perfdiv
         LDD #SNE
@@ -199,8 +202,8 @@ ld_err  BRA ld_err             ; the medium could not be read
         INCLUDE "gen/assets.inc"
         INCLUDE "gen/tokens.inc"
 RESEND  EQU *
-        IFGT RESEND-STAGE
-        ERROR Resident program overlaps STAGE
+        IFGT RESEND-RLOGBASE
+        ERROR Resident program overlaps renderer/test workspace
         ENDC
 
         ORG $0E00               ; low resident code, above disk BASIC buffers

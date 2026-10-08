@@ -136,6 +136,29 @@ The optional approximation, quality, hardware and ROM-execution proposals
 (O18–O24) are also outside this exact stock-CoCo pass. None of their estimated
 savings is counted above.
 
+### O13 planar vertices — second follow-up
+
+Vertices with zero Y use two products per row instead of three. The zero term
+still contributes `$FFFF` when its XOR mask is negative; it is never dropped as
+mathematical zero. The helper preserves the original X/Y overflow saturation,
+shift ladder and live Z clamp/projection. Non-planar vertices keep the original
+nine-product path.
+
+Across 992 transforms using all 31 blueprints, both signs, seven shift counts,
+detail thresholds and gun-vertex sentinels, all 317,440 projected coordinate and
+outcode bytes matched. The natural blueprint fixture averaged 12,158.34 cycles
+before and 12,130.69 after: a small aggregate saving, not the original 6–12k
+whole-frame hypothesis. A second 992-case run with artificial negative-zero
+vertex signs also matched all bytes, exercising the complement-bias case. Three
+shaded title frames leave GEOM and PERF byte-identical to their source binaries.
+
+GEOM is a persistent two-sector allocation at `$B600-$B7FF` (455 bytes of code
+and view-banner data). Moving the 320-byte view banners out of the resident
+image makes room without touching ship data. Shaded scalars move to
+`$7EB0-$7EF1`; its span arrays stay at `$B800-$B97F`. Roll-test logging moves to
+`$7E00-$7EAF`, with its pointer and sweep counters outside GEOM. Assembly guards
+the resident end at `$7E00`, and segment packing guards GEOM below `$B800`.
+
 ## Provenance and reproducibility
 
 This paper consolidates the local project records `CoCo/PERFORMANCE.md`, `CoCo/PERFORMANCE-AUDIT.md`, `CoCo/Elite-CoCo-Optimization-Roadmap-Final.md`, `CoCo/PERF-PASS.md`, `CoCo/consolidated-fps-measurements.csv` and the independent Audit A in `CoCo/consolidated-audit-evidence.zip` from the separate `Elite` working tree. The original records remain there; they are not duplicated in this repository. The roadmap audited source commit `06c6bcf7c188db8580f50b01059f4cf705862fd8`, and the implementation pass started at that commit. The current implementation is in [`coco-source/`](coco-source/), including the renderer, flight timing, sound and view-clear routines named above.

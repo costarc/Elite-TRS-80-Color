@@ -153,6 +153,9 @@ flight/bench.asm    micro-benchmarks (BENCH)
   `CLEAR 200,&H2800:LOADM"ELITE":EXEC`). The sector buffer occupies `$7F00-$7FFF`.
   SHIPS and DOCK share `$C000-$EDFF`; DASH contains the dashboard art at `$F300`.
   PERF is loaded once at `$EE00-$EFFF` and retains the performance helpers and
-  gauge tables across SHIPS/DOCK swaps. Assembly rejects either resident segment
+  gauge tables across SHIPS/DOCK swaps. GEOM at `$B600-$B7FF` holds planar
+  vertex transforms and the four view banners. Shaded scalar state lives at
+  `$7EB0-$7EF1`, shaded span arrays at `$B800-$B97F`; optional roll logging
+  uses `$7E00-$7EAF`. The resident program stays below `$7E00`. Assembly rejects either resident segment
   overflowing its safe range; overlay packing checks every padded segment.
 

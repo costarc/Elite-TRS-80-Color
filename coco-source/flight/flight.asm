@@ -221,14 +221,14 @@ AUTODOCK
         STA dklast
         ENDC
         ENDC
-        IFDEF DOCKLOG           ; test: 8 bytes a call at $B650 (a ring to $B6F8): path, K, xx15, delta, roll, pitch counters; $B640 the pointer
-        LDX $B640
-        CMPX #$B650
+        IFDEF DOCKLOG           ; test: 8 bytes a call at RLOGBASE (a ring to RLOGEND): path, K, xx15, delta, roll, pitch counters; RLOGPTR the pointer
+        LDX RLOGPTR
+        CMPX #RLOGBASE
         BHS dl_ok
-        LDX #$B650
-dl_ok   CMPX #$B6F8
+        LDX #RLOGBASE
+dl_ok   CMPX #RLOGEND
         BLO dl_w
-        LDX #$B650
+        LDX #RLOGBASE
 dl_w    LDA dkpath
         STA ,X+
         LDA $B193
@@ -245,7 +245,7 @@ dl_w    LDA dkpath
         STA ,X+
         LDA <alpha
         STA ,X+
-        STX $B640
+        STX RLOGPTR
 dl_skip  EQU *
         ENDC
         LDA inwk+27             ; at most 22 while docking
@@ -716,9 +716,9 @@ dq_z    STD ,X++
         IFDEF FLYSWEEP
 ; stress test: every loop the Cobra in slot 2 goes to a random place well inside the view
 ; (|x|, |y| <= z/4, z 6..37 * 256) while it tumbles; SWEEPLOG notes every time LL9 drew nothing
-swn     EQU $B640               ; 1 failures logged
-swz     EQU $B641               ; 1 z_hi of the ship now
-swt     EQU $B642               ; 1 loops tested
+swn     EQU $B9D4               ; 1 failures logged
+swz     EQU $B9D5               ; 1 z_hi of the ship now
+swt     EQU $B9D6               ; 1 loops tested
 SWBASE  EQU slots+2*SLOTSZ
 SWEEPSET JSR DORND
         ANDA #31
@@ -763,7 +763,7 @@ SWEEPLOG LDA inwk+34
         BHS swl_x
         LDB #14
         MUL
-        ADDD #$B650
+        ADDD #RLOGBASE
         TFR D,U
         LDX #inwk
         LDD 1,X
@@ -1145,13 +1145,13 @@ lt_x    EQU *
         JSR SHIPLOOP
         JSR SCALEOFF
         IFDEF ROLLTEST
-        LDX $B640
-        CMPX #$B650
+        LDX RLOGPTR
+        CMPX #RLOGBASE
         BHS rl_ok
-        LDX #$B650
-rl_ok   CMPX #$B6F8
+        LDX #RLOGBASE
+rl_ok   CMPX #RLOGEND
         BLO rl_w
-        LDX #$B650
+        LDX #RLOGBASE
 rl_w    LDA #210
         STA ,X+
         LDA slots+SLOTSZ+15
@@ -1168,7 +1168,7 @@ rl_w    LDA #210
         STA ,X+
         LDA <jstx
         STA ,X+
-        STX $B640
+        STX RLOGPTR
         ENDC
         TST dead
         BNE fd_dd

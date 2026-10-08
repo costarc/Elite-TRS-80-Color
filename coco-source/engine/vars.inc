@@ -11,11 +11,13 @@
 ;   $8000-$97FF     screen page A     (SAM offset 64*512)
 ;   $9800-$AFFF     screen page B     (SAM offset 76*512)
 ;   $B000-$B6FF     tables and scratch ($B200 MSKTAB, $B300 scrb)
-;   $B700-$B97F     shaded renderer workspace (engine/shade.asm)
+;   $B600-$B7FF     GEOM: planar transforms and immutable view banners
+;   $B800-$B97F     shaded renderer span tables (engine/shade.asm)
+;   $7E00-$7EAF     optional roll-test log; $7EB0-$7EF1 shaded scalar workspace
 ;   $EE00-$EFFF     PERF: helpers and gauge tables, loaded once and retained
 ;   $B9F0-$B9F2     message cache state;  $BD00-$BEFF MBUF, the message set in type
 ;   $BA00-$BCFF     RTAB, NTH, NTL: square roots and 96*256/n (MKTABS, at start-up)
-;   $C000-$EFFF     overlay segment SHIPS (blueprints, ship sets, names), loaded at start-up
+;   $C000-$EDFF     overlay segment SHIPS (blueprints, ship sets, names), loaded at start-up
 ;   $F000-$F1FF     ship slots; $F200- stars; $F300-$FBFF overlay segment DASH (the
 ;                   dashboard art); $FC00-$FEFF explosion records
 ;   Everything from $8000 up is only visible in the SAM all-RAM mode, in which the BASIC
@@ -552,3 +554,9 @@ CCOFF   EQU $B1DE       ; 32 unsigned offsets at even sine counters, x then y
 perfdiv EQU $B1FE       ; 2 resident DIV32 entry for the persistent performance segment
 perfsin EQU $B9CF       ; 2 resident SNE entry for the persistent performance segment
 sclines EQU $B9D1       ; 1 rows left in a scanner restoration band
+
+gshptr  EQU $B9D2       ; 2 current ship's signed shift ladder entry
+RLOGPTR EQU $B9D7       ; 2 optional roll-test log pointer
+RLOGBASE EQU $7E00      ; 168 bytes, outside loaded resident code
+RLOGEND EQU RLOGBASE+168
+SHWORK  EQU $7EB0       ; 66 shaded scalar bytes, below STAGE

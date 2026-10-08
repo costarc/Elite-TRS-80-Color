@@ -20,7 +20,8 @@ ROOT = Path(__file__).resolve().parents[2]        # CoCo/
 SEGS = [('SHIPS', 0xC000, 0xEE00),                # name, load address, end limit (the ship slots
         ('DASH', 0xF300, 0xFC00),                 # (the docked screens use the ships' place)
         ('DOCK', 0xC000, 0xEE00),                # shares SHIPS RAM; PERF starts at $EE00
-        ('PERF', 0xEE00, 0xF000)]                # two persistent sectors; ship slots start at $F000
+        ('PERF', 0xEE00, 0xF000),
+        ('GEOM', 0xB600, 0xB800)]                # two persistent sectors; ship slots start at $F000
 CART_BLOB_SECTOR = 128                            # blob at linear offset $8000 of the cartridge
 
 
@@ -42,7 +43,7 @@ def main():
             m = re.match(r'Symbol: (\S+) \(.*\) = ([0-9A-Fa-f]+)', line)
             if m and not m.group(1).startswith('@'):
                 value = int(m.group(2), 16)
-                if name != 'PERF' or addr <= value < limit:
+                if name not in ('PERF', 'GEOM') or addr <= value < limit:
                     syms.append((m.group(1), value))
     (ROOT / 'build' / 'elite.dat').write_bytes(bytes(blob))
     g = ROOT / 'coco-source' / 'gen'

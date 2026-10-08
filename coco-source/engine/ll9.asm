@@ -633,7 +633,11 @@ tw_s2   JSR >SRAE
         SUBD <tmp2
         LBRA tv_st
         ENDC
-tv_full ROW 0
+tv_full LDA <vay
+        BNE tv_general
+        JSR VERTY0
+        LBRA tv_s3
+tv_general ROW 0
 tv_s1   JSR >SHLADE             ; patched: >> h
         ADDD <xp
         BVC tv_x1
@@ -1049,6 +1053,7 @@ ll_hd   STB <hsh
         STD tv_s1+1
         STD tv_s2+1
         STD tv_s3+1
+        STD gshptr
         LDX #inwk
         JSR SCALE1
         STD <xp

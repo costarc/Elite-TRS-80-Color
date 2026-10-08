@@ -48,6 +48,8 @@ if ($LASTEXITCODE) { exit 1 }
 if ($LASTEXITCODE) { exit 1 }
 & $asm @('-9', '--format=raw', '-Icoco-source', '-obuild\perf.bin', '--map=build\perf.map') coco-source\seg\perf.asm
 if ($LASTEXITCODE) { exit 1 }
+& $asm @('-9', '--format=raw', '-Icoco-source', '-obuild\geom.bin', '--map=build\geom.map') coco-source\seg\geom.asm
+if ($LASTEXITCODE) { exit 1 }
 Invoke-Python coco-source\tools\segs.py
 
 # The resident program is assembled twice: the first time for its labels, which the docked

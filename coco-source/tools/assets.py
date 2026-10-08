@@ -195,11 +195,12 @@ def emit():
         ch = chr(code)
         known = ch in _UPPER or ch in _ART
         out.append(fcb([r << 2 for r in glyph(ch)] if known else [0] * 8))
-    out.append('VIEWBANNER')   # "FRONT VIEW" etc. for the top of the space view: 4 x 8 rows x 10 bytes
+    banner = ['VIEWBANNER']   # "FRONT VIEW" etc. for the top of the space view: 4 x 8 rows x 10 bytes
     for name in ('FRONT VIEW', 'REAR VIEW', 'LEFT VIEW', 'RIGHT VIEW'):
         name = name.ljust(10)
         for row in range(8):
-            out.append(fcb([(glyph(ch)[row] << 2) if (ch in _UPPER or ch in _ART) else 0 for ch in name]))
+            banner.append(fcb([(glyph(ch)[row] << 2) if (ch in _UPPER or ch in _ART) else 0 for ch in name]))
+    (ROOT / 'viewbanner.inc').write_text('\n'.join(banner) + '\n')
     # MKMASK: the vertex-sign x matrix-sign XOR masks used by TRANSFORM.
     # MSKTAB + 32*p + e : p = vertex sign bits (x,y,z negative) as bits 2,1,0,
     # e = k + 3*j (row k of the matrix, vertex axis j): $FF when the term is negative.
