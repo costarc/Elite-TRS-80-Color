@@ -189,6 +189,13 @@ and row dispatch. This runtime implementation is rejected and is not shipped.
 A future predecoded pairing layout would have to beat that overhead and fit the
 loader allocations; the original 5–7k estimate remains unproven.
 
+### View-banner packing prerequisite
+
+The fixed uppercase view names have an empty eighth bitmap row. GEOM now stores
+seven rows per view and BANNER writes the last row as zero words. This removes
+40 bytes of duplicated bitmap data. All four complete framebuffers match the
+prior version, including the unchanged background outside the banner.
+
 ## Provenance and reproducibility
 
 This paper consolidates the local project records `CoCo/PERFORMANCE.md`, `CoCo/PERFORMANCE-AUDIT.md`, `CoCo/Elite-CoCo-Optimization-Roadmap-Final.md`, `CoCo/PERF-PASS.md`, `CoCo/consolidated-fps-measurements.csv` and the independent Audit A in `CoCo/consolidated-audit-evidence.zip` from the separate `Elite` working tree. The original records remain there; they are not duplicated in this repository. The roadmap audited source commit `06c6bcf7c188db8580f50b01059f4cf705862fd8`, and the implementation pass started at that commit. The current implementation is in [`coco-source/`](coco-source/), including the renderer, flight timing, sound and view-clear routines named above.

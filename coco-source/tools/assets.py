@@ -195,10 +195,11 @@ def emit():
         ch = chr(code)
         known = ch in _UPPER or ch in _ART
         out.append(fcb([r << 2 for r in glyph(ch)] if known else [0] * 8))
-    banner = ['VIEWBANNER']   # "FRONT VIEW" etc. for the top of the space view: 4 x 8 rows x 10 bytes
+    banner = ['VIEWBANNER']   # "FRONT VIEW" etc. for the top of the space view: 4 x 7 rows x 10 bytes; the blank last row is drawn directly
     for name in ('FRONT VIEW', 'REAR VIEW', 'LEFT VIEW', 'RIGHT VIEW'):
         name = name.ljust(10)
-        for row in range(8):
+        assert all(glyph(ch)[7] == 0 for ch in name), 'Banner bottom row must stay blank'
+        for row in range(7):
             banner.append(fcb([(glyph(ch)[row] << 2) if (ch in _UPPER or ch in _ART) else 0 for ch in name]))
     (ROOT / 'viewbanner.inc').write_text('\n'.join(banner) + '\n')
     # MKMASK: the vertex-sign x matrix-sign XOR masks used by TRANSFORM.

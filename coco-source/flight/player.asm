@@ -213,13 +213,13 @@ si_r    RTS
 
 ; "FRONT VIEW" etc. at the top of the view (row 1, column 11 of 8x8 cells)
 BANNER  LDA <view               ; (stored whole every frame: O11 need not clear it)
-        LDB #80
+        LDB #70
         MUL
         ADDD #VIEWBANNER
         TFR D,X
         LDU <back
         LEAU 8*32+11,U
-        LDB #8
+        LDB #7
 bn_r    LDY ,X++
         STY ,U++
         LDY ,X++
@@ -233,6 +233,13 @@ bn_r    LDY ,X++
         LEAU 22,U
         DECB
         BNE bn_r
+        LDY #0                  ; every uppercase banner has a blank bottom row
+        STY ,U
+        STY 2,U
+        STY 4,U
+        STY 6,U
+        STY 8,U
+        LEAU 32,U
         RTS
 
 ; ---- altitude and cabin temperature (MA22 of the original's main loop) ---------------
