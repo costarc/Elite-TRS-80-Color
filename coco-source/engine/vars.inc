@@ -160,7 +160,7 @@ sflag   EQU $B113       ; 1  turning flag for this frame (stars)
 k24     EQU $02F4       ; 3  24-bit signed result (MULP24)
 mg      EQU $02F7       ; 3  24-bit magnitude scratch
 
-eux     EQU $02FA       ; ellipse vectors in pixels (signed): u = (eux,euy), v = (evx,evy)
+eux     EQU $02FA       ; ellipse orientation components (signed): u = (eux,euy), v = (evx,evy)
 euy     EQU $02FB
 evx     EQU $02FC
 evy     EQU $02FD
@@ -234,7 +234,7 @@ ecm     EQU $B4AB       ; 1  an E.C.M. system is fitted
 dcnt    EQU $B4AD       ; 1  death sequence frames left
 docked  EQU $B4AE       ; 1  docked at a station
 qq15    EQU $B4B0       ; 6  the current system's seeds
-tek     EQU qq5         ; the technology level - 1 of the system we are in
+tek     EQU $B5F3       ; 1  current system technology - 1; qq5 is the selected system
 ksl     EQU $B4B7       ; 1  KILLSHP: the slot
 ; ---- text (docked/text.asm) ----------------------------------------------------------
 xc      EQU $B4C0       ; 1  the text cursor: column 0-31
@@ -454,7 +454,7 @@ fshw    EQU $0297       ; 2  its scale shift s
 fcl     EQU $0299       ; 2  left shift of the n term
 pmg     EQU $027A       ; 6  |ps64|
 scrb    EQU $B300       ; 40 vertices x (sx low, sy low, outcode, -)
-kq      EQU $026E       ; 1  256 * K / 96
+pbig    EQU $026E       ; 1  true projected radius >= 256 (outline only)
 pin     EQU $026F       ; 1  previous circle point outside the viewport
 pnin    EQU $0270       ; 1  this one
 avx     EQU $0243       ; |ellipse vectors| (v then u) and their sign bytes

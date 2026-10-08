@@ -96,6 +96,8 @@ hy1_l   LDA ,X+
         STA qq28
         LDA qq4
         STA gov
+        LDA qq5
+        STA tek                 ; retain current technology while browsing other systems
         RTS
 
 ; a mis-jump into witchspace: three Thargoids and nothing else (MJP)

@@ -409,6 +409,7 @@ nc_s    LDA ,X+
         STA tp
         ENDC
         JSR TT111               ; the system nearest to (20, 173) is Lave
+        JSR HYP1                ; initialise current economy, government and technology
         JSR GVL                 ; its market
         LDX #qq15
         LDU #qq2

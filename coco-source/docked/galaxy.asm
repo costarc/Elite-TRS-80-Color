@@ -53,8 +53,8 @@ t24_a   LDA qq3
         STA qq5
         LDA qq4
         LSRA
-        ADDA qq5
-        STA qq5                 ; technology = (economy EOR 7) + (s1 high AND 3) + government / 2
+        ADCA qq5                ; BBC LSR/ADC: carry rounds odd governments UP
+        STA qq5                 ; technology = (economy EOR 7) + (s1 high AND 3) + ceil(government / 2)
         ASLA
         ASLA
         ADDA qq3

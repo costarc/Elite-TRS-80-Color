@@ -99,33 +99,16 @@ pj_ks   LSR <mr
         BNE pj_ks
 pj_div  JSR DIV32
         LDD <mr+2
+        CLR <pbig
         TSTA
         BEQ pj_radius
+        INC <pbig
         LDB #248                ; original PLANET caps radii of 256 or more
 pj_radius
         STB kr
         CLRA
         JSR SC34                ; radius is unsigned; SC34A wraps for K >= 128
         STB kry
-        LDA kr                  ; kq = kr * 256 / 96 (at most 255): SCALEK's multiplier
-        LDB #171
-        MUL
-        LSRA
-        RORB
-        LSRA
-        RORB
-        LSRA
-        RORB
-        LSRA
-        RORB
-        LSRA
-        RORB
-        LSRA
-        RORB
-        TSTA
-        BEQ pj_kq
-        LDB #255
-pj_kq   STB kq
         ANDCC #$FE
         RTS
 pj_no   ORCC #1
@@ -307,16 +290,29 @@ ss_a    MUL
 ss_p    CLRA
         RTS
 
-; A = (signed hi byte of an orientation component) * radius / 96, in pixels:
-; |A| * kq >> 8 with kq = 256 * K / 96
+; D = signed orientation component A * radius / 96. Preserve X.
+; Divide the unsigned 16-bit product by 96 in eight restoring steps; the
+; quotient fits a byte, but its signed result needs 16 bits at large radii.
 SCALEK  STA <sgnt
         BPL sk_p
         NEGA
-sk_p    LDB kq
+sk_p    LDB <kr
         MUL
+        PSHS X
+        LDX #8
+sk_div  ASLB
+        ROLA
+        CMPA #96
+        BLO sk_next
+        SUBA #96
+        INCB
+sk_next LEAX -1,X
+        BNE sk_div
+        PULS X
+        CLRA
         TST <sgnt
         BPL sk_r
-        NEGA
+        JMP NEGD
 sk_r    RTS
 
 ; z(c) of the ellipse point at counter c: nz*cos + wz*sin (D, signed)
@@ -367,39 +363,65 @@ fs_n    DEC <cnt
         STA ec0
         RTS
 
-; |signed byte \1| -> \2, its sign (bit 7) -> \3
+; Scale orientation component \1 to unsigned pixel magnitude \2 and sign \3.
+; Vertical components use the CoCo's 3/4 screen scale. Full ellipses (craters)
+; have half the radius of the planet; halve after scaling, as in BBC PL26.
 ABSS    MACRO
         LDA <\1
-        STA \3
-        BPL @p
-        NEGA
-@p      STA \2
+        STA <\3
+        JSR SCALEK
+        IFNE \4
+        JSR SC34
+        ENDC
+        JSR ELMAG
+        STB <\2
         ENDM
 
-; A = (|\1| * |sin or cos| >> 8) with the sign (\2 xor \3) -> A
+; Convert a signed pixel component to magnitude, halving crater axes first.
+ELMAG   PSHS D
+        LDA <etgt
+        CMPA #64
+        PULS D
+        BNE em_full
+        ASRA
+        RORB
+em_full TSTA
+        BPL em_r
+        NEGB                    ; only the unsigned magnitude byte is needed
+em_r    RTS
+
+; D = signed (magnitude \1 * sine magnitude \4) / 256.
 TERM    MACRO
-        LDA \1
-        LDB \4
+        LDA <\1
+        LDB <\4
         MUL
-        LDB \2
-        EORB \3
-        BPL @p
-        NEGA
-@p      EQU *
+        TFR A,B
+        LDA <\2
+        EORA <\3
+        JSR TERMSIGN
         ENDM
+
+; Magnitude B, sign in A -> signed 16-bit D (including negative zero).
+TERMSIGN
+        TSTA
+        BPL ts_p
+        CLRA
+        JMP NEGD
+ts_p    CLRA
+        RTS
 
 ; Draw the ellipse centre + u*cos(c) + v*sin(c) (y negated), c = ec0 .. ec0+etgt
 ; in steps of pstp, as segments. Every point is four 8x8 MULs: the sine and
-; cosine come from the sine table as magnitude and sign, and since the point is
-; a projection of a circle of radius K the signed 8-bit sums never overflow.
+; cosine come from the sine table as magnitude and sign. Pixel magnitudes are
+; unsigned bytes; signed 16-bit sums keep radii 128..255 from wrapping.
 ELLIPSE LDD pcx
         STD ecx
         LDD pcy
         STD ecy
-        ABSS evx,avx,svx
-        ABSS eux,aux,sux
-        ABSS evy,avy,svy
-        ABSS euy,auy,suy
+        ABSS evx,avx,svx,0
+        ABSS eux,aux,sux,0
+        ABSS evy,avy,svy,1
+        ABSS euy,auy,suy,1
         LDA #1
         STA pfst
         CLR ecn
@@ -427,19 +449,15 @@ el_l    LDA ec0
         ASLA
         STA ss2
         TERM avx,svx,ss1,sm1
-        STA tm1
+        PSHS D
         TERM aux,sux,ss2,sm2
-        ADDA tm1
-        TFR A,B
-        SEX
+        ADDD ,S++
         ADDD ecx
         STD <cx1
         TERM avy,svy,ss1,sm1
-        STA tm1
+        PSHS D
         TERM auy,suy,ss2,sm2
-        ADDA tm1
-        TFR A,B
-        SEX
+        ADDD ,S++
         STD <tmp
         LDD ecy
         SUBD <tmp               ; y is up
@@ -452,31 +470,40 @@ el_l    LDA ec0
         LBLS el_l
         RTS
 
-; u = (hi bytes at X, X+2) scaled to pixels / v likewise
+; Keep orientation components signed; ELLIPSE scales them to pixel magnitudes.
 SETU    LDA ,X
-        JSR SCALEK
         STA <eux
         LDA 2,X
-        JSR SCALEK
-        JSR SC34A               ; vertical: 3/4
         STA <euy
         RTS
 SETV    LDA ,X
-        JSR SCALEK
         STA <evx
         LDA 2,X
-        JSR SCALEK
-        JSR SC34A
         STA <evy
         RTS
+
+; Signed D * 222/256: displacement of the crater centre along roofv.
+CRATOFF PSHS A
+        TSTA
+        BPL co_p
+        JSR NEGD
+co_p    TFR B,A
+        LDB #222
+        MUL
+        TFR A,B
+        CLRA
+        TST ,S+
+        BPL co_r
+        JMP NEGD
+co_r    RTS
 
 ; the planet's equator and meridian (type 128), or its crater (type 130)
 PLANDETAIL
         LDA kr
         CMPA #6
         LBLO pd_r               ; too small
-        CMPA #96
-        LBHI pd_r               ; larger discs exceed the flight view: outline only
+        TST <pbig
+        LBNE pd_r               ; BBC PL9: no detail when the true radius >= 256
         LDA inwk+34
         CMPA #128
         LBNE pd_crater
@@ -505,53 +532,21 @@ pd_crater
         LBMI pd_r
         LDA inwk+15             ; centre = planet centre + 222/256 * K * roofv
         JSR SCALEK
-        LDB #222
-        PSHS A
-        TSTA                    ; (LDB #222 left N set)
-        BPL pc_a
-        NEGA
-pc_a    MUL
-        TFR A,B
-        CLRA
-        TST ,S+
-        BPL pc_b
-        JSR NEGD
-pc_b    ADDD pcx
+        JSR CRATOFF
+        ADDD pcx
         STD pcx
         LDA inwk+17
         JSR SCALEK
-        JSR SC34A
-        LDB #222
-        PSHS A
-        TSTA                    ; (LDB #222 left N set)
-        BPL pc_c
-        NEGA
-pc_c    MUL
-        TFR A,B
-        CLRA
-        TST ,S+
-        BPL pc_d
-        JSR NEGD
-pc_d    STD <tmp
+        JSR SC34
+        JSR CRATOFF
+        STD <tmp
         LDD pcy
         SUBD <tmp
         STD pcy
-        LDX #inwk+21            ; the crater ellipse: half size nosev and sidev
+        LDX #inwk+21            ; ELLIPSE halves the crater's scaled vectors
         JSR SETU
-        LDA <eux
-        ASRA
-        STA <eux
-        LDA <euy
-        ASRA
-        STA <euy
         LDX #inwk+9
         JSR SETV
-        LDA <evx
-        ASRA
-        STA <evx
-        LDA <evy
-        ASRA
-        STA <evy
         CLR ec0
         LDA #64
         STA etgt
